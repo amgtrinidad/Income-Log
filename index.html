@@ -37,6 +37,7 @@
     .grand{margin-top:10px;padding:12px 14px;border:1px solid var(--ring);background:#0a0f1c;border-radius:12px;display:flex;justify-content:space-between;align-items:center;font-size:16px}
     .grand .value{font-size:20px;font-weight:800}
     .hint{color:var(--muted);font-size:12px;margin-top:8px}
+    .note{margin:-6px 0 10px 0;padding:8px 12px;border-radius:10px;background:#0b1220;border:1px solid var(--ring);color:#60a5fa;font-size:12px}
     @media (max-width:720px){.grid{grid-template-columns:130px repeat(3,minmax(240px,1fr))}}
     noscript{display:block;background:#220b0f;border:1px solid #3f0f19;color:#ffd7dc;padding:12px 14px;border-radius:12px;margin:12px 0}
   </style>
@@ -52,6 +53,8 @@
       <button id="fillDemo" class="ghost">Demo data</button>
       <div class="hint">DATE</div>
     </header>
+
+    <div class="note" id="ctxNote" style="display:none"></div>
 
     <noscript>JavaScript is disabled or blocked. Please allow scripts for live totals and logging.</noscript>
 
@@ -113,7 +116,7 @@
   </div>
 
   <script>
-    // Expand the 10 inputs inline to keep HTML concise
+    // Expand the 10 inputs inline
     (function(){
       function makeRows(prefix){
         var html = '';
@@ -131,60 +134,65 @@
 
   <script>
     (function(){
-      function formatPeso(n){
-        if (typeof n !== 'number' || !isFinite(n)) n = 0;
-        var s = (Math.round(n*100)/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        return '₱' + s;
-      }
-      function parseVal(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
-      function sumColumn(prefix){
-        var s = 0;
-        for (var i=1;i<=10;i++){
-          var box = document.getElementById(prefix+'-'+i);
-          if (box) s += parseVal(box.value);
-        }
-        return s;
-      }
-      function refreshSubtotals(){
-        document.getElementById('subtotal-pf').textContent = formatPeso(sumColumn('pf'));
-        document.getElementById('subtotal-meds').textContent = formatPeso(sumColumn('meds'));
-        document.getElementById('subtotal-cf').textContent = formatPeso(sumColumn('cf'));
-      }
-      function refreshGrand(){
-        var t = sumColumn('pf') + sumColumn('meds') + sumColumn('cf');
-        document.getElementById('grand').textContent = formatPeso(t);
-        return t;
+      function formatPeso(n){ if (typeof n !== 'number' || !isFinite(n)) n=0; var s=(Math.round(n*100)/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); return '₱'+s; }
+      function parseVal(v){ var n=parseFloat(v); return isNaN(n)?0:n; }
+      function sumColumn(prefix){ var s=0; for (var i=1;i<=10;i++){ var box=document.getElementById(prefix+'-'+i); if (box) s+=parseVal(box.value);} return s; }
+      function refreshSubtotals(){ document.getElementById('subtotal-pf').textContent=formatPeso(sumColumn('pf')); document.getElementById('subtotal-meds').textContent=formatPeso(sumColumn('meds')); document.getElementById('subtotal-cf').textContent=formatPeso(sumColumn('cf')); }
+      function refreshGrand(){ var t=sumColumn('pf')+sumColumn('meds')+sumColumn('cf'); document.getElementById('grand').textContent=formatPeso(t); return t; }
+
+      // Context notice
+      var note = document.getElementById('ctxNote');
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        note.style.display='block'; note.textContent='Installed app: data saved here is separate from Safari tabs.';
+      } else {
+        note.style.display='block'; note.textContent='Browser tab: install to Home Screen if you want a separate app with its own data.';
       }
 
       // JS badge
-      var jsBadge = document.getElementById('jsBadge'); jsBadge.textContent = 'JS: ON'; jsBadge.className = 'badge ok';
+      var jsBadge=document.getElementById('jsBadge'); jsBadge.textContent='JS: ON'; jsBadge.className='badge ok';
 
       // Date default
-      try {
-        var today = new Date();
-        var yyyy = today.getFullYear();
-        var mm = String(today.getMonth()+1).padStart(2,'0');
-        var dd = String(today.getDate()).padStart(2,'0');
-        document.getElementById('date').value = yyyy+'-'+mm+'-'+dd;
-      } catch(e){}
+      try { var today=new Date(); var yyyy=today.getFullYear(); var mm=String(today.getMonth()+1).padStart(2,'0'); var dd=String(today.getDate()).padStart(2,'0'); document.getElementById('date').value=yyyy+'-'+mm+'-'+dd; } catch(e){}
 
       // Storage detection
-      var storeBadge = document.getElementById('storeBadge');
-      var storageOK = true;
+      var storeBadge=document.getElementById('storeBadge'); var storageOK=true;
       try { localStorage.setItem('__test__','1'); localStorage.removeItem('__test__'); storeBadge.textContent='Storage: OK'; storeBadge.className='badge ok'; }
       catch(e){ storageOK=false; storeBadge.textContent='Storage: BLOCKED'; storeBadge.className='badge warn'; }
 
       // Live listeners
-      Array.prototype.forEach.call(document.querySelectorAll('input[type="number"]'), function(inp){
-        inp.addEventListener('input', refreshSubtotals, false);
-      });
+      Array.prototype.forEach.call(document.querySelectorAll('input[type="number"]'), function(inp){ inp.addEventListener('input', function(){ refreshSubtotals(); saveDraft(); }, false); });
+
+      function saveDraft(){
+        if (!storageOK) return;
+        var dateVal = document.getElementById('date').value || 'nodate';
+        var draft = { pf:[], meds:[], cf:[] };
+        ['pf','meds','cf'].forEach(function(p){
+          var arr=[]; for (var i=1;i<=10;i++){ var box=document.getElementById(p+'-'+i); arr.push(parseVal(box && box.value)); }
+          draft[p]=arr;
+        });
+        localStorage.setItem('draft:'+dateVal, JSON.stringify(draft));
+      }
+      function loadDraft(dateVal){
+        if (!storageOK) return;
+        try {
+          var draft = JSON.parse(localStorage.getItem('draft:'+dateVal));
+          if (draft){ ['pf','meds','cf'].forEach(function(p){ for (var i=1;i<=10;i++){ var box=document.getElementById(p+'-'+i); if (box) box.value = (draft[p][i-1]||''); } }); }
+        } catch(e){}
+      }
+
+      document.getElementById('date').addEventListener('change', function(){
+        // Save current draft then load the new date's draft
+        saveDraft();
+        loadDraft(this.value);
+        refreshSubtotals(); refreshGrand();
+      }, false);
 
       // Buttons
-      document.getElementById('calc').addEventListener('click', function(){ refreshSubtotals(); refreshGrand(); }, false);
+      document.getElementById('calc').addEventListener('click', function(){ refreshSubtotals(); refreshGrand(); saveDraft(); }, false);
       document.getElementById('clearToday').addEventListener('click', function(){
         if (!confirm('Clear all inputs for the current day?')) return;
         for (var i=1;i<=10;i++){ ['pf','meds','cf'].forEach(function(p){ var box=document.getElementById(p+'-'+i); if (box) box.value=''; }); }
-        refreshSubtotals(); refreshGrand();
+        refreshSubtotals(); refreshGrand(); saveDraft();
       }, false);
       document.getElementById('clearLog').addEventListener('click', function(){
         if (!storageOK){ alert('Storage blocked.'); return; }
@@ -193,23 +201,22 @@
       }, false);
       document.getElementById('dailyLog').addEventListener('click', function(){
         if (!storageOK){ alert('Storage blocked.'); return; }
-        var dateVal = document.getElementById('date').value; if (!dateVal){ alert('Pick a date.'); return; }
+        var dateVal=document.getElementById('date').value; if (!dateVal){ alert('Pick a date.'); return; }
         refreshSubtotals();
-        var entry = {
-          date: dateVal,
-          pfSubtotal: Math.round(sumColumn('pf')*100)/100,
-          medsSubtotal: Math.round(sumColumn('meds')*100)/100,
-          cfSubtotal: Math.round(sumColumn('cf')*100)/100,
-          total: Math.round((sumColumn('pf')+sumColumn('meds')+sumColumn('cf'))*100)/100,
-          savedAt: new Date().toISOString()
-        };
-        var log = []; try { log = JSON.parse(localStorage.getItem('incomeLog')) || []; } catch(e){}
-        var idx = -1; for (var i=0;i<log.length;i++){ if (log[i].date===entry.date){ idx=i; break; } }
+        var entry={ date:dateVal, pfSubtotal:Math.round(sumColumn('pf')*100)/100, medsSubtotal:Math.round(sumColumn('meds')*100)/100, cfSubtotal:Math.round(sumColumn('cf')*100)/100, total:Math.round((sumColumn('pf')+sumColumn('meds')+sumColumn('cf'))*100)/100, savedAt:new Date().toISOString() };
+        var log=[]; try { log=JSON.parse(localStorage.getItem('incomeLog'))||[]; } catch(e){}
+        var idx=-1; for (var i=0;i<log.length;i++){ if (log[i].date===entry.date){ idx=i; break; } }
         if (idx>=0) log[idx]=entry; else log.push(entry);
         var cutoff=new Date(); cutoff.setDate(cutoff.getDate()-29);
         var keep=[]; for (var j=0;j<log.length;j++){ var d=new Date(log[j].date+'T00:00:00'); if (d>=cutoff) keep.push(log[j]); }
         localStorage.setItem('incomeLog', JSON.stringify(keep));
         alert('Saved for '+entry.date+'\nPF '+formatPeso(entry.pfSubtotal)+'  MEDS '+formatPeso(entry.medsSubtotal)+'  CF '+formatPeso(entry.cfSubtotal)+'\nTOTAL '+formatPeso(entry.total));
+      }, false);
+
+      // Demo data
+      document.getElementById('fillDemo').addEventListener('click', function(){
+        ['pf','meds','cf'].forEach(function(p){ for (var i=1;i<=3;i++){ var box=document.getElementById(p+'-'+i); if (box) box.value=i*1000; } });
+        refreshSubtotals(); refreshGrand(); saveDraft();
       }, false);
 
       // PWA: service worker
@@ -219,19 +226,9 @@
 
       // PWA: Install prompt (Android/Chrome)
       let deferredPrompt;
-      const btn = document.getElementById('installBtn');
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        btn.style.display = 'inline-block';
-      });
-      btn.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        await deferredPrompt.userChoice;
-        deferredPrompt = null;
-        btn.style.display = 'none';
-      });
+      const btn=document.getElementById('installBtn');
+      window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt=e; btn.style.display='inline-block'; });
+      btn.addEventListener('click', async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; btn.style.display='none'; });
     })();
   </script>
 </body>

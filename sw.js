@@ -1,4 +1,4 @@
-const CACHE_NAME = 'income-log-v2';
+const CACHE_NAME = 'income-log-v3';
 const BASE = '/Income-Log';
 const APP_SHELL = [
   `${BASE}/`,
@@ -20,7 +20,6 @@ self.addEventListener('activate', (event) => {
 });
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  // For navigations, try network first, fall back to cache
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).then(res => {
@@ -31,7 +30,6 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-  // For others, use cache first, then network
   event.respondWith(
     caches.match(request).then(cached => cached || fetch(request).then(res => {
       const copy = res.clone();
