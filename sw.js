@@ -1,6 +1,6 @@
-const CACHE_NAME = 'income-log-v3';
-const BASE = '/Income-Log';
-const APP_SHELL = [
+const CACHE = 'monthly-income-log-v1';
+const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, '');
+const SHELL = [
   `${BASE}/`,
   `${BASE}/index.html`,
   `${BASE}/manifest.webmanifest`,
@@ -8,33 +8,37 @@ const APP_SHELL = [
   `${BASE}/icon-192.png`,
   `${BASE}/icon-512.png`
 ];
-self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
   self.skipWaiting();
 });
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null)))
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.map(k => k === CACHE ? null : caches.delete(k))))
   );
   self.clients.claim();
 });
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-        return res;
-      }).catch(() => caches.match(request).then(cached => cached || caches.match(`${BASE}/index.html`)))
-    );
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  if (req.mode === 'navigate') {
+    e.respondWith((async () => {
+      try {
+        const net = await fetch(req);
+        const copy = net.clone();
+        (await caches.open(CACHE)).put(req, copy);
+        return net;
+      } catch (err) {
+        const cached = await caches.match(req);
+        return cached || caches.match(`${BASE}/index.html`);
+      }
+    })());
     return;
   }
-  event.respondWith(
-    caches.match(request).then(cached => cached || fetch(request).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-      return res;
-    }))
-  );
+  e.respondWith((async () => {
+    const cached = await caches.match(req);
+    if (cached) return cached;
+    const net = await fetch(req);
+    (await caches.open(CACHE)).put(req, net.clone());
+    return net;
+  })());
 });

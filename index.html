@@ -3,233 +3,116 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Income Logger</title>
+  <title>Monthly Income Logger</title>
   <meta name="theme-color" content="#22c55e" />
-  <link rel="manifest" href="/Income-Log/manifest.webmanifest">
-  <link rel="apple-touch-icon" href="/Income-Log/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <style>
-    :root { --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#22c55e; --accent-2:#60a5fa; --danger:#f43f5e; --ring:#1f2937; --input:#0b1220; --card:#0b1220; }
-    *{box-sizing:border-box} html,body{height:100%;background:var(--bg);color:var(--text);margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji"}
-    .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-    h1{font-size:20px;margin:0;letter-spacing:.3px}
-    .badge{font-size:12px;border:1px solid var(--ring);padding:6px 8px;border-radius:10px;background:#0b1220;color:var(--muted)}
-    .ok{color:#05290e;background:#072313;border-color:#0f3d24}
-    .warn{color:#3a1a1f;background:#220b0f;border-color:#3f0f19}
-    .date-input{background:var(--input);border:1px solid var(--ring);color:var(--text);padding:10px 12px;border-radius:10px;outline:none}
-    .grid{display:grid;gap:12px;grid-template-columns:150px repeat(3,minmax(260px,1fr));overflow-x:auto;padding-bottom:4px}
-    .col{background:var(--card);border:1px solid var(--ring);border-radius:14px;overflow:hidden}
-    .col h2{margin:0;padding:12px 14px;font-size:14px;letter-spacing:.4px;background:linear-gradient(180deg,#111827,#0b1220);border-bottom:1px solid var(--ring)}
-    .rows{padding:10px;max-height:55vh;overflow:auto}
-    .rows .row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
-    .rows .row span{width:22px;color:var(--muted);text-align:right}
-    input[type="number"]{width:100%;padding:12px 12px;border-radius:12px;border:1px solid var(--ring);background:#0a0f1c;color:var(--text);outline:none;font-size:15px;-moz-appearance:textfield}
-    input[type="number"]::-webkit-outer-spin-button,input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-    .subtotal{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-top:1px solid var(--ring);background:#0a0f1c;font-size:13px;color:var(--muted)}
-    .subtotal strong{color:var(--text);font-size:15px}
-    .label-cell{background:transparent;padding-top:6px;color:var(--muted);font-size:13px}
-    .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-    button{border:1px solid var(--ring);background:var(--panel);color:var(--text);padding:12px 16px;border-radius:12px;font-weight:600;cursor:pointer;letter-spacing:.3px}
-    button.primary{background:var(--accent);color:#03120a;border-color:transparent}
-    button.info{background:var(--accent-2);color:#04101d;border-color:transparent}
-    button.ghost{background:#0b1220}
-    button.danger{background:var(--danger);color:#16070a;border-color:transparent}
-    .grand{margin-top:10px;padding:12px 14px;border:1px solid var(--ring);background:#0a0f1c;border-radius:12px;display:flex;justify-content:space-between;align-items:center;font-size:16px}
-    .grand .value{font-size:20px;font-weight:800}
-    .hint{color:var(--muted);font-size:12px;margin-top:8px}
-    .note{margin:-6px 0 10px 0;padding:8px 12px;border-radius:10px;background:#0b1220;border:1px solid var(--ring);color:#60a5fa;font-size:12px}
-    @media (max-width:720px){.grid{grid-template-columns:130px repeat(3,minmax(240px,1fr))}}
-    noscript{display:block;background:#220b0f;border:1px solid #3f0f19;color:#ffd7dc;padding:12px 14px;border-radius:12px;margin:12px 0}
+    body{font-family:sans-serif;background:#0f172a;color:#fff;margin:0;padding:1em}
+    h1{margin-top:0}
+    table{border-collapse:collapse;width:100%;margin-bottom:1em}
+    th,td{border:1px solid #555;padding:5px;text-align:center}
+    input{width:80px}
+    .totals{margin-top:10px}
+    button{margin:5px;padding:10px}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>Income Logger</h1>
-      <input id="date" class="date-input" type="date" />
-      <span id="jsBadge" class="badge warn">JS: OFF</span>
-      <span id="storeBadge" class="badge">Storage: —</span>
-      <button id="installBtn" class="ghost" style="display:none">Install App</button>
-      <button id="fillDemo" class="ghost">Demo data</button>
-      <div class="hint">DATE</div>
-    </header>
-
-    <div class="note" id="ctxNote" style="display:none"></div>
-
-    <noscript>JavaScript is disabled or blocked. Please allow scripts for live totals and logging.</noscript>
-
-    <div class="grid">
-      <div class="label-cell">—</div>
-      <div class="label-cell">PF</div>
-      <div class="label-cell">MEDS</div>
-      <div class="label-cell">CF / PAPERS</div>
-
-      <div class="col">
-        <h2>Rows</h2>
-        <div class="rows">
-          <div class="row"><span>1</span></div>
-          <div class="row"><span>2</span></div>
-          <div class="row"><span>3</span></div>
-          <div class="row"><span>4</span></div>
-          <div class="row"><span>5</span></div>
-          <div class="row"><span>6</span></div>
-          <div class="row"><span>7</span></div>
-          <div class="row"><span>8</span></div>
-          <div class="row"><span>9</span></div>
-          <div class="row"><span>10</span></div>
-        </div>
-        <div class="subtotal"><span>Subtotal</span><strong>—</strong></div>
-      </div>
-
-      <div class="col">
-        <h2>PF</h2>
-        <div class="rows">%PF%</div>
-        <div class="subtotal"><span>Subtotal</span><strong id="subtotal-pf">₱0.00</strong></div>
-      </div>
-
-      <div class="col">
-        <h2>MEDS</h2>
-        <div class="rows">%MEDS%</div>
-        <div class="subtotal"><span>Subtotal</span><strong id="subtotal-meds">₱0.00</strong></div>
-      </div>
-
-      <div class="col">
-        <h2>CF / PAPERS</h2>
-        <div class="rows">%CF%</div>
-        <div class="subtotal"><span>Subtotal</span><strong id="subtotal-cf">₱0.00</strong></div>
-      </div>
-    </div>
-
-    <div class="btns">
-      <button class="primary" id="calc">CALCULATE</button>
-      <button class="info" id="dailyLog">DAILY LOG</button>
-      <button class="ghost" id="clearToday">Clear Today</button>
-      <button class="danger" id="clearLog">Erase 30‑Day Log</button>
-    </div>
-
-    <div class="grand">
-      <div>Grand Total</div>
-      <div class="value" id="grand">₱0.00</div>
-    </div>
-
-    <div class="hint">• Works offline after first load. Install via the **Install App** button (Android/Chrome) or Safari’s **Add to Home Screen** (iOS).</div>
+  <h1>Monthly Income Logger</h1>
+  <label>Month:
+    <select id="monthSelect"></select>
+  </label>
+  <table id="incomeTable">
+    <thead>
+      <tr><th>Date</th><th colspan="5">PF</th><th colspan="5">MEDS</th><th colspan="5">CF/PAPERS</th></tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+  <div class="totals">
+    PF Subtotal: <span id="pfTotal">0</span> |
+    MEDS Subtotal: <span id="medsTotal">0</span> |
+    CF/PAPERS Subtotal: <span id="cfTotal">0</span>
   </div>
-
+  <div>
+    <button id="calcBtn">CALCULATE</button>
+    <span>Grand Total: <span id="grandTotal">0</span></span>
+  </div>
   <script>
-    // Expand the 10 inputs inline
-    (function(){
-      function makeRows(prefix){
-        var html = '';
-        for (var i=1;i<=10;i++){
-          html += '<div class="row"><span>'+i+'</span><input id="'+prefix+'-'+i+'" type="number" step="any" inputmode="decimal" placeholder="0.00"></div>';
-        }
-        return html;
-      }
-      document.body.innerHTML = document.body.innerHTML
-        .replace('%PF%', makeRows('pf'))
-        .replace('%MEDS%', makeRows('meds'))
-        .replace('%CF%', makeRows('cf'));
-    })();
-  </script>
-
-  <script>
-    (function(){
-      function formatPeso(n){ if (typeof n !== 'number' || !isFinite(n)) n=0; var s=(Math.round(n*100)/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); return '₱'+s; }
-      function parseVal(v){ var n=parseFloat(v); return isNaN(n)?0:n; }
-      function sumColumn(prefix){ var s=0; for (var i=1;i<=10;i++){ var box=document.getElementById(prefix+'-'+i); if (box) s+=parseVal(box.value);} return s; }
-      function refreshSubtotals(){ document.getElementById('subtotal-pf').textContent=formatPeso(sumColumn('pf')); document.getElementById('subtotal-meds').textContent=formatPeso(sumColumn('meds')); document.getElementById('subtotal-cf').textContent=formatPeso(sumColumn('cf')); }
-      function refreshGrand(){ var t=sumColumn('pf')+sumColumn('meds')+sumColumn('cf'); document.getElementById('grand').textContent=formatPeso(t); return t; }
-
-      // Context notice
-      var note = document.getElementById('ctxNote');
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        note.style.display='block'; note.textContent='Installed app: data saved here is separate from Safari tabs.';
-      } else {
-        note.style.display='block'; note.textContent='Browser tab: install to Home Screen if you want a separate app with its own data.';
-      }
-
-      // JS badge
-      var jsBadge=document.getElementById('jsBadge'); jsBadge.textContent='JS: ON'; jsBadge.className='badge ok';
-
-      // Date default
-      try { var today=new Date(); var yyyy=today.getFullYear(); var mm=String(today.getMonth()+1).padStart(2,'0'); var dd=String(today.getDate()).padStart(2,'0'); document.getElementById('date').value=yyyy+'-'+mm+'-'+dd; } catch(e){}
-
-      // Storage detection
-      var storeBadge=document.getElementById('storeBadge'); var storageOK=true;
-      try { localStorage.setItem('__test__','1'); localStorage.removeItem('__test__'); storeBadge.textContent='Storage: OK'; storeBadge.className='badge ok'; }
-      catch(e){ storageOK=false; storeBadge.textContent='Storage: BLOCKED'; storeBadge.className='badge warn'; }
-
-      // Live listeners
-      Array.prototype.forEach.call(document.querySelectorAll('input[type="number"]'), function(inp){ inp.addEventListener('input', function(){ refreshSubtotals(); saveDraft(); }, false); });
-
-      function saveDraft(){
-        if (!storageOK) return;
-        var dateVal = document.getElementById('date').value || 'nodate';
-        var draft = { pf:[], meds:[], cf:[] };
-        ['pf','meds','cf'].forEach(function(p){
-          var arr=[]; for (var i=1;i<=10;i++){ var box=document.getElementById(p+'-'+i); arr.push(parseVal(box && box.value)); }
-          draft[p]=arr;
+    const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    const monthSelect = document.getElementById('monthSelect');
+    months.forEach((m,i)=>{
+      const opt=document.createElement('option'); opt.value=i; opt.textContent=m; monthSelect.appendChild(opt);
+    });
+    const tableBody = document.getElementById('tableBody');
+    function buildTable(month){
+      tableBody.innerHTML="";
+      const year = new Date().getFullYear();
+      const days = new Date(year, month+1, 0).getDate();
+      for(let d=1; d<=days; d++){
+        const tr = document.createElement('tr');
+        const dateCell = document.createElement('td');
+        dateCell.textContent = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        tr.appendChild(dateCell);
+        ["pf","meds","cf"].forEach(prefix=>{
+          for(let i=0;i<5;i++){
+            const td=document.createElement('td');
+            const input=document.createElement('input');
+            input.type="number"; input.step="any";
+            input.addEventListener('input', saveData);
+            td.appendChild(input);
+            tr.appendChild(td);
+          }
         });
-        localStorage.setItem('draft:'+dateVal, JSON.stringify(draft));
+        tableBody.appendChild(tr);
       }
-      function loadDraft(dateVal){
-        if (!storageOK) return;
-        try {
-          var draft = JSON.parse(localStorage.getItem('draft:'+dateVal));
-          if (draft){ ['pf','meds','cf'].forEach(function(p){ for (var i=1;i<=10;i++){ var box=document.getElementById(p+'-'+i); if (box) box.value = (draft[p][i-1]||''); } }); }
-        } catch(e){}
+      loadData();
+    }
+    function saveData(){
+      const data=[];
+      tableBody.querySelectorAll('tr').forEach(row=>{
+        const rowData=[];
+        row.querySelectorAll('input').forEach(inp=>rowData.push(inp.value));
+        data.push(rowData);
+      });
+      localStorage.setItem('incomeData_'+monthSelect.value, JSON.stringify(data));
+      updateTotals();
+    }
+    function loadData(){
+      const saved=JSON.parse(localStorage.getItem('incomeData_'+monthSelect.value)||"[]");
+      if(saved.length){
+        tableBody.querySelectorAll('tr').forEach((row,rIndex)=>{
+          row.querySelectorAll('input').forEach((inp,cIndex)=>{
+            inp.value=saved[rIndex][cIndex]||"";
+          });
+        });
       }
-
-      document.getElementById('date').addEventListener('change', function(){
-        // Save current draft then load the new date's draft
-        saveDraft();
-        loadDraft(this.value);
-        refreshSubtotals(); refreshGrand();
-      }, false);
-
-      // Buttons
-      document.getElementById('calc').addEventListener('click', function(){ refreshSubtotals(); refreshGrand(); saveDraft(); }, false);
-      document.getElementById('clearToday').addEventListener('click', function(){
-        if (!confirm('Clear all inputs for the current day?')) return;
-        for (var i=1;i<=10;i++){ ['pf','meds','cf'].forEach(function(p){ var box=document.getElementById(p+'-'+i); if (box) box.value=''; }); }
-        refreshSubtotals(); refreshGrand(); saveDraft();
-      }, false);
-      document.getElementById('clearLog').addEventListener('click', function(){
-        if (!storageOK){ alert('Storage blocked.'); return; }
-        if (!confirm('Erase the saved 30‑day log?')) return;
-        localStorage.removeItem('incomeLog'); alert('Log erased.');
-      }, false);
-      document.getElementById('dailyLog').addEventListener('click', function(){
-        if (!storageOK){ alert('Storage blocked.'); return; }
-        var dateVal=document.getElementById('date').value; if (!dateVal){ alert('Pick a date.'); return; }
-        refreshSubtotals();
-        var entry={ date:dateVal, pfSubtotal:Math.round(sumColumn('pf')*100)/100, medsSubtotal:Math.round(sumColumn('meds')*100)/100, cfSubtotal:Math.round(sumColumn('cf')*100)/100, total:Math.round((sumColumn('pf')+sumColumn('meds')+sumColumn('cf'))*100)/100, savedAt:new Date().toISOString() };
-        var log=[]; try { log=JSON.parse(localStorage.getItem('incomeLog'))||[]; } catch(e){}
-        var idx=-1; for (var i=0;i<log.length;i++){ if (log[i].date===entry.date){ idx=i; break; } }
-        if (idx>=0) log[idx]=entry; else log.push(entry);
-        var cutoff=new Date(); cutoff.setDate(cutoff.getDate()-29);
-        var keep=[]; for (var j=0;j<log.length;j++){ var d=new Date(log[j].date+'T00:00:00'); if (d>=cutoff) keep.push(log[j]); }
-        localStorage.setItem('incomeLog', JSON.stringify(keep));
-        alert('Saved for '+entry.date+'\nPF '+formatPeso(entry.pfSubtotal)+'  MEDS '+formatPeso(entry.medsSubtotal)+'  CF '+formatPeso(entry.cfSubtotal)+'\nTOTAL '+formatPeso(entry.total));
-      }, false);
-
-      // Demo data
-      document.getElementById('fillDemo').addEventListener('click', function(){
-        ['pf','meds','cf'].forEach(function(p){ for (var i=1;i<=3;i++){ var box=document.getElementById(p+'-'+i); if (box) box.value=i*1000; } });
-        refreshSubtotals(); refreshGrand(); saveDraft();
-      }, false);
-
-      // PWA: service worker
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/Income-Log/sw.js').catch(()=>{});
-      }
-
-      // PWA: Install prompt (Android/Chrome)
-      let deferredPrompt;
-      const btn=document.getElementById('installBtn');
-      window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt=e; btn.style.display='inline-block'; });
-      btn.addEventListener('click', async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; btn.style.display='none'; });
-    })();
+      updateTotals();
+    }
+    function updateTotals(){
+      let pf=0, meds=0, cf=0;
+      tableBody.querySelectorAll('tr').forEach(row=>{
+        const inputs=row.querySelectorAll('input');
+        inputs.forEach((inp,idx)=>{
+          const val=parseFloat(inp.value)||0;
+          if(idx<5) pf+=val;
+          else if(idx<10) meds+=val;
+          else cf+=val;
+        });
+      });
+      document.getElementById('pfTotal').textContent=pf.toFixed(2);
+      document.getElementById('medsTotal').textContent=meds.toFixed(2);
+      document.getElementById('cfTotal').textContent=cf.toFixed(2);
+    }
+    document.getElementById('calcBtn').addEventListener('click',()=>{
+      const grand = parseFloat(document.getElementById('pfTotal').textContent)+
+                    parseFloat(document.getElementById('medsTotal').textContent)+
+                    parseFloat(document.getElementById('cfTotal').textContent);
+      document.getElementById('grandTotal').textContent=grand.toFixed(2);
+    });
+    monthSelect.addEventListener('change',()=>buildTable(parseInt(monthSelect.value)));
+    monthSelect.value=new Date().getMonth();
+    buildTable(new Date().getMonth());
+    if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js');}
   </script>
 </body>
 </html>
