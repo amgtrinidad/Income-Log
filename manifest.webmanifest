@@ -1,0 +1,21 @@
+{
+  "name": "Income Logger",
+  "short_name": "IncomeLog",
+  "start_url": "/Income-Log/",
+  "scope": "/Income-Log/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#22c55e",
+  "icons": [
+    {
+      "src": "/Income-Log/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/Income-Log/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
