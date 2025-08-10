@@ -1,44 +1,42 @@
-const CACHE_NAME = 'income-log-v1';
+const CACHE_NAME = 'income-log-v2';
+const BASE = '/Income-Log';
 const APP_SHELL = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './sw.js',
-  './icon-192.png',
-  './icon-512.png'
+  `${BASE}/`,
+  `${BASE}/index.html`,
+  `${BASE}/manifest.webmanifest`,
+  `${BASE}/sw.js`,
+  `${BASE}/icon-192.png`,
+  `${BASE}/icon-512.png`
 ];
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
   self.skipWaiting();
 });
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.map(k => {
-      if (k !== CACHE_NAME) return caches.delete(k);
-    })))
+    caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null)))
   );
   self.clients.claim();
 });
 self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  // Network first for HTML, cache-first for others
-  if (req.mode === 'navigate' || (req.method === 'GET' && req.headers.get('accept')?.includes('text/html'))) {
+  const { request } = event;
+  // For navigations, try network first, fall back to cache
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(req).then(res => {
+      fetch(request).then(res => {
         const copy = res.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
+        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
         return res;
-      }).catch(() => caches.match(req).then(cached => cached || caches.match('./index.html')))
+      }).catch(() => caches.match(request).then(cached => cached || caches.match(`${BASE}/index.html`)))
     );
-  } else {
-    event.respondWith(
-      caches.match(req).then(cached => cached || fetch(req).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
-        return res;
-      }))
-    );
+    return;
   }
+  // For others, use cache first, then network
+  event.respondWith(
+    caches.match(request).then(cached => cached || fetch(request).then(res => {
+      const copy = res.clone();
+      caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+      return res;
+    }))
+  );
 });
